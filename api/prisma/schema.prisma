@@ -116,7 +116,7 @@ model Chat {
 
 model Message {
   id                String            @id @default(uuid())
-  chat              Chat              @relation(fields: [chatId], references: [id])
+  chat              Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId            String            @map("chat_id")
   user              User?             @relation(fields: [userId], references: [id])
   userId            String?           @map("user_id")
@@ -130,7 +130,7 @@ model Message {
 
 model ResearchRequest {
   id             String           @id @default(uuid())
-  message        Message          @relation(fields: [messageId], references: [id])
+  message        Message          @relation(fields: [messageId], references: [id], onDelete: Cascade)
   messageId      String           @map("message_id")
   status         String
   parameters     Json?
@@ -143,7 +143,7 @@ model ResearchRequest {
 
 model ResearchResult {
   id                String          @id @default(uuid())
-  researchRequest   ResearchRequest @relation(fields: [researchRequestId], references: [id])
+  researchRequest   ResearchRequest @relation(fields: [researchRequestId], references: [id], onDelete: Cascade)
   researchRequestId String          @map("research_request_id")
   content           Json
   createdAt         DateTime        @default(now()) @map("created_at")

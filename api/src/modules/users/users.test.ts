@@ -9,6 +9,10 @@ describe("Users Module", () => {
   let token: string;
 
   beforeEach(async () => {
+    await prisma.researchResult.deleteMany();
+    await prisma.researchRequest.deleteMany();
+    await prisma.message.deleteMany();
+    await prisma.chat.deleteMany();
     await prisma.organizationMember.deleteMany();
     await prisma.organization.deleteMany();
     await prisma.passwordResetToken.deleteMany();
@@ -107,6 +111,23 @@ describe("Users Module", () => {
       const res = await request(app).get(`/api/users/${user.id}`);
 
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe("GET /users/:id/chats", () => {
+    it("should prevent accessing another user's chats", async () => {
+      const password = "password123";
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user2 = await prisma.user.create({
+        data: { email: "user2@example.com", password: hashedPassword, firstName: "User", lastName: "Two" }
+      });
+      const token2 = generateAccessToken(user2.id);
+
+      const res = await request(app)
+        .get(`/api/users/${user.id}/chats`)
+        .set("Authorization", `Bearer ${token2}`);
+
+      expect(res.status).toBe(403);
     });
   });
 

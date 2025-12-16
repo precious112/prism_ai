@@ -8,6 +8,12 @@ jest.mock("../../utils/email");
 
 describe("Auth Module", () => {
   beforeEach(async () => {
+    await prisma.researchResult.deleteMany();
+    await prisma.researchRequest.deleteMany();
+    await prisma.message.deleteMany();
+    await prisma.chat.deleteMany();
+    await prisma.organizationMember.deleteMany();
+    await prisma.organization.deleteMany();
     await prisma.passwordResetToken.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();

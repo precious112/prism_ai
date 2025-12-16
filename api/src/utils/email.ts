@@ -20,3 +20,19 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
     console.log("Resend Success:", data);
   }
 };
+
+export const sendInvitationEmail = async (email: string, token: string, organizationName: string) => {
+  const invitationLink = `http://localhost:3000/invitations/accept?token=${token}`;
+  const { data, error } = await resend.emails.send({
+    from: "precious@trysixth.com",
+    to: email,
+    subject: `You've been invited to join ${organizationName} on Prism AI`,
+    html: `<p>You have been invited to join <strong>${organizationName}</strong> on Prism AI.</p><p>Click the link below to accept the invitation:</p><a href="${invitationLink}">${invitationLink}</a>`,
+  });
+
+  if (error) {
+    console.error("Resend Invitation Error:", error);
+  } else {
+    console.log("Resend Invitation Success:", data);
+  }
+};

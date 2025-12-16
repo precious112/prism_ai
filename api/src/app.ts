@@ -3,6 +3,9 @@ import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import { authRouter } from "./modules/auth/auth.routes";
 import { usersRouter } from "./modules/users/users.routes";
+import { organizationsRouter } from "./modules/organizations/organizations.routes";
+import { chatRouter } from "./modules/chat/chat.routes";
+import { researchRouter } from "./modules/research/research.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { generateOpenAPI } from "./utils/swagger";
 
@@ -19,6 +22,9 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(generateOpenAPI()));
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/organizations", organizationsRouter);
+app.use("/api/chats", chatRouter);
+app.use("/api/research", researchRouter);
 
 app.use(errorHandler);
 

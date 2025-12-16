@@ -24,10 +24,15 @@ export const authHandler = catchAsync(async (
     throw new AppError(500, "Access token secret not configured.");
   }
 
-  const payload = jwt.verify(
-    token,
-    process.env.ACCESS_TOKEN_SECRET
-  ) as AuthPayload;
+  let payload: AuthPayload;
+  try {
+    payload = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET
+    ) as AuthPayload;
+  } catch (error) {
+    throw new AppError(401, "Invalid or expired token.");
+  }
 
   const user = await prisma.user.findUnique({
     where: {
