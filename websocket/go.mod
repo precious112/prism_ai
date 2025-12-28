@@ -1,6 +1,6 @@
 module github.com/precious112/prism_ai/websocket
 
-go 1.25.5
+go 1.22
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

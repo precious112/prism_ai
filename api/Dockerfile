@@ -14,7 +14,12 @@ FROM node:20.19-alpine
 
 WORKDIR /usr/src/app
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
+COPY prisma ./prisma
+
 RUN npm install --only=production
 
 COPY --from=builder /usr/src/app/dist ./dist

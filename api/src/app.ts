@@ -1,4 +1,5 @@
 import express, { Express, Request, Response } from "express";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import { authRouter } from "./modules/auth/auth.routes";
@@ -11,6 +12,10 @@ import { generateOpenAPI } from "./utils/swagger";
 
 const app: Express = express();
 
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
 

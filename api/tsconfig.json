@@ -8,7 +8,7 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "prisma.config.ts"],
+  "include": ["src/**/*.ts"],
   "ts-node": {
     "files": true
   }

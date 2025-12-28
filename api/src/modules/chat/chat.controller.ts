@@ -27,6 +27,7 @@ export const addMessageController = catchAsync(async (req: Request, res: Respons
     req.body.role,
     {
       model: req.body.model,
+      provider: req.body.provider,
       apiKey: req.body.apiKey,
     }
   );

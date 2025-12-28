@@ -1,6 +1,7 @@
 import { prisma } from "../../utils/prisma";
 import AppError from "../../utils/AppError";
 import redisClient from "../../utils/redis";
+import logger from "../../utils/logger";
 
 export const createChat = async (userId: string, data: { title?: string, organizationId?: string }) => {
   return await prisma.chat.create({
@@ -48,8 +49,10 @@ export const addMessage = async (
   userId: string | null,
   content: string,
   role: string = "user",
-  config?: { model?: string; apiKey?: string }
+  config?: { model?: string; provider?: string; apiKey?: string }
 ) => {
+  logger.info(`addMessage called for chat ${chatId} with role ${role}`);
+
   if (userId) {
     // Check handled by middleware
   } else {
@@ -69,6 +72,7 @@ export const addMessage = async (
 
     let researchRequest = null;
     if (role === "user") {
+      logger.info("Creating research request for user message");
       researchRequest = await tx.researchRequest.create({
         data: {
           messageId: message.id,
@@ -81,14 +85,26 @@ export const addMessage = async (
   });
 
   if (result.researchRequest) {
-    await redisClient.publish(
-      "research_tasks",
-      JSON.stringify({
-        requestId: result.researchRequest.id,
-        query: content,
-        config: config || {},
-      })
-    );
+    logger.info(`Pushing research task to Redis for request ${result.researchRequest.id}`);
+    try {
+      await redisClient.rpush(
+        "research_tasks",
+        JSON.stringify({
+          requestId: result.researchRequest.id,
+          userId: userId,
+          chatId: chatId,
+          query: content,
+          config: config || {},
+        })
+      );
+      logger.info("Successfully pushed task to Redis");
+    } catch (error) {
+      logger.error(error, "Failed to push task to Redis");
+      // We don't want to fail the request if redis push fails, but maybe we should?
+      // For now, let's log it.
+    }
+  } else {
+    logger.info("No research request to push (role not user?)");
   }
 
   return result.message;

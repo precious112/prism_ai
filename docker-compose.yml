@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: prism_postgres
+    environment:
+      POSTGRES_USER: prism
+      POSTGRES_PASSWORD: prism
+      POSTGRES_DB: prism_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - prism-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prism -d prism_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: prism_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - prism-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./api
+    container_name: prism_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./api/docker.env
+    ports:
+      - "3001:3000"
+    networks:
+      - prism-network
+    command: sh -c "npx prisma migrate deploy && npm start"
+
+  worker:
+    build: ./core
+    container_name: prism_worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    env_file:
+      - ./core/docker.env
+    networks:
+      - prism-network
+
+  websocket:
+    build: ./websocket
+    container_name: prism_websocket
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./websocket/docker.env
+    command: sh -c "./server -redis $$REDIS_HOST:$$REDIS_PORT -addr :$$PORT"
+    ports:
+      - "8080:8080"
+    networks:
+      - prism-network
+
+  client:
+    build:
+      context: ./client
+    container_name: prism_client
+    depends_on:
+      api:
+        condition: service_started
+      websocket:
+        condition: service_started
+    env_file:
+      - ./client/.env
+    ports:
+      - "3000:3000"
+    networks:
+      - prism-network
+
+networks:
+  prism-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

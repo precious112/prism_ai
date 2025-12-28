@@ -3,6 +3,8 @@ import logger from "./logger";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
+logger.info(`Initializing Redis client with URL: ${redisUrl}`);
+
 const redisClient = new Redis(redisUrl, {
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
