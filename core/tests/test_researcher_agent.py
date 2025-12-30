@@ -8,20 +8,22 @@ from langchain_core.messages import AIMessage
 # Ensure core/src is in path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.agents.researcher_agent import ResearcherAgent, GapAnalysis, Action
+from src.agents.researcher_agent import ResearcherAgent, GapAnalysis, Action, IllustrationCheck
 
 class TestResearcherAgent(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.mock_model = MagicMock()
         # Mock structured output chain
-        self.mock_gap_chain = MagicMock()
-        self.mock_gap_chain.ainvoke = AsyncMock() # Use AsyncMock for ainvoke
-        self.mock_model.with_structured_output.return_value = self.mock_gap_chain
+        self.mock_chain = MagicMock()
+        self.mock_chain.ainvoke = AsyncMock() # Use AsyncMock for ainvoke
+        self.mock_model.with_structured_output.return_value = self.mock_chain
         
         self.agent = ResearcherAgent(self.mock_model, serper_api_key="fake")
         # Replace tools with mock
         self.agent.serper_tool = MagicMock()
         self.agent.crawler_tool = MagicMock()
+        self.agent.illustration_tool = MagicMock()
+        self.agent.illustration_tool.illustrate = AsyncMock()
 
     async def test_check_gaps_initial(self):
         state = {
@@ -122,6 +124,54 @@ class TestResearcherAgent(unittest.IsolatedAsyncioTestCase):
         
         result = await self.agent.synthesize_node(state)
         self.assertEqual(result["draft"], "Updated Draft")
+
+    @patch('src.agents.researcher_agent.ChatPromptTemplate')
+    async def test_illustrate_node_needed(self, mock_prompt_cls):
+        # Setup mock chain behavior
+        mock_chain = MagicMock()
+        mock_check = IllustrationCheck(needs_illustration=True, reason="Complex topic")
+        mock_chain.ainvoke = AsyncMock(return_value=mock_check)
+        
+        # Setup prompt mock
+        mock_prompt = MagicMock()
+        mock_prompt.__or__.return_value = mock_chain
+        mock_prompt_cls.from_messages.return_value = mock_prompt
+
+        # Setup illustration tool mock
+        self.agent.illustration_tool.illustrate.return_value = {"url": "http://img.com"}
+
+        state = {
+            "topic": "DP",
+            "description": "Dynamic Programming",
+            "draft": "Complex text about DP..."
+        }
+        
+        result = await self.agent.illustrate_node(state)
+        self.assertIsNotNone(result["illustration"])
+        self.assertEqual(result["illustration"]["url"], "http://img.com")
+        self.agent.illustration_tool.illustrate.assert_called_once()
+
+    @patch('src.agents.researcher_agent.ChatPromptTemplate')
+    async def test_illustrate_node_not_needed(self, mock_prompt_cls):
+        # Setup mock chain behavior
+        mock_chain = MagicMock()
+        mock_check = IllustrationCheck(needs_illustration=False, reason="Simple enough")
+        mock_chain.ainvoke = AsyncMock(return_value=mock_check)
+        
+        # Setup prompt mock
+        mock_prompt = MagicMock()
+        mock_prompt.__or__.return_value = mock_chain
+        mock_prompt_cls.from_messages.return_value = mock_prompt
+
+        state = {
+            "topic": "Simple",
+            "description": "Simple Desc",
+            "draft": "Simple text..."
+        }
+        
+        result = await self.agent.illustrate_node(state)
+        self.assertIsNone(result["illustration"])
+        self.agent.illustration_tool.illustrate.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()

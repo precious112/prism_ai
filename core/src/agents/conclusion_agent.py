@@ -9,7 +9,7 @@ class ConclusionAgent:
     async def generate_report_stream(self, query: str, sections_content: List[Dict[str, Any]]) -> AsyncIterator[str]:
         """
         Aggregates section drafts into a final report, streaming XML output.
-        sections_content: List of dicts with {'title': str, 'content': str, 'sources': List[dict]}
+        sections_content: List of dicts with {'title': str, 'content': str, 'sources': List[dict], 'illustration': dict}
         
         Yields XML fragments:
         <section title="...">
@@ -39,9 +39,7 @@ class ConclusionAgent:
         yield f'<section title="Executive Summary">\n<text>\n{summary_text}\n</text>\n</section>\n'
         
         # Refinement Chain Definition
-        refine_prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a research editor. You are assembling a final report section by section."),
-            ("user", """Here is what we have written so far:
+        refine_prompt_template = """Here is what we have written so far:
 <context>
 {context}
 </context>
@@ -54,6 +52,8 @@ Here is the draft for the next section ({title}):
 Here are the sources used in this draft:
 {sources_formatted}
 
+{illustration_instruction}
+
 Task: Rewrite the draft to flow naturally from the context. REMOVE any information that has already been mentioned in the context to avoid repetition. Keep the unique details of this section.
 
 Output Format: You MUST output valid XML with the following structure:
@@ -61,12 +61,20 @@ Output Format: You MUST output valid XML with the following structure:
 <text>
 ...refined markdown content...
 </text>
+{illustration_placeholder}
+<text>
+...more content...
+</text>
 <sources>
 <link url="..." title="..." />
 </sources>
 </section>
 
-Do not output any text outside these tags. Use the provided sources to populate the links.""")
+Do not output any text outside these tags. Use the provided sources to populate the links."""
+
+        refine_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a research editor. You are assembling a final report section by section."),
+            ("user", refine_prompt_template)
         ])
         refine_chain = refine_prompt | self.model
 
@@ -75,22 +83,87 @@ Do not output any text outside these tags. Use the provided sources to populate 
             title = section['title']
             raw_content = section.get('content', '')
             sources = section.get('sources', [])
+            illustration = section.get('illustration')
             
             # Format sources for the LLM
             sources_formatted = "\n".join([f"- Title: {s.get('title')}, URL: {s.get('url')}" for s in sources])
             
+            illustration_instruction = ""
+            illustration_placeholder_hint = ""
+            if illustration:
+                desc = "A generated interactive visualization."
+                if illustration.get("type") == "code":
+                    desc = "A generated interactive visualization (code provided)."
+                elif illustration.get("type") == "image":
+                    desc = f"An image titled '{illustration.get('alt', 'Image')}'."
+
+                illustration_instruction = f"""
+An illustration is available for this section: {desc}
+
+DECISION REQUIRED:
+1. Decide if this illustration helps explain the text.
+2. If YES:
+   - Place the tag `<illustration_placeholder/>` in the text where the illustration should appear.
+   - You may explicitly reference it (e.g., "The following visualization shows...").
+3. If NO:
+   - Do not include the placeholder tag.
+"""
+                illustration_placeholder_hint = "<illustration_placeholder/> (optional)"
+
+            # Prepare illustration XML tag for replacement
+            illustration_xml = ""
+            if illustration:
+                if illustration["type"] == "image":
+                    illustration_xml = f'\n<image src="{illustration["url"]}" alt="{illustration.get("alt", "")}" />\n'
+                elif illustration["type"] == "code":
+                    illustration_xml = f'\n<code>{illustration["content"]}</code>\n'
+
             # Stream the refined section
             section_accumulator = ""
+            buffer = ""
+            illustration_inserted = False
+            
             async for chunk in refine_chain.astream({
-                "context": report_context[-3000:], # Context window
+                "context": report_context, # Full context for coherence
                 "title": title,
                 "draft": raw_content,
-                "sources_formatted": sources_formatted
+                "sources_formatted": sources_formatted,
+                "illustration_instruction": illustration_instruction,
+                "illustration_placeholder": illustration_placeholder_hint
             }):
                 content = chunk.content
-                if content:
+                if not content: continue
+                
+                if illustration:
+                    buffer += content
+                    # Loop to handle multiple placeholders in one chunk or accumulated buffer
+                    while "<illustration_placeholder/>" in buffer:
+                        head, sep, tail = buffer.partition("<illustration_placeholder/>")
+                        
+                        # Yield the text before the placeholder
+                        yield head
+                        section_accumulator += head
+                        
+                        # Insert illustration ONLY ONCE
+                        if not illustration_inserted:
+                            yield illustration_xml
+                            section_accumulator += illustration_xml
+                            illustration_inserted = True
+                        else:
+                            # If duplicate placeholder, we just skip yielding the illustration again
+                            # Essentially removing the duplicate placeholder from the output
+                            pass
+                            
+                        # Update buffer to the rest of the string
+                        buffer = tail
+                else:
                     yield content
                     section_accumulator += content
             
-            # Update context with the full section XML (or just the text part if we parsed it, but full XML is safer for context tracking)
+            # Yield remaining buffer
+            if buffer:
+                yield buffer
+                section_accumulator += buffer
+            
+            # Update context with the full section XML
             report_context += f"{section_accumulator}\n\n"

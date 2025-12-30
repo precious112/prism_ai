@@ -1,4 +1,4 @@
-from typing import List, TypedDict, Annotated, Dict, Any, Literal
+from typing import List, TypedDict, Annotated, Dict, Any, Literal, Optional
 import operator
 import json
 import asyncio
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from src.tools.serper_tool import SerperTool
 from src.tools.crawler_tool import CrawlerTool
+from src.tools.illustration_tool import IllustrationTool
 
 class Action(BaseModel):
     tool: Literal["search", "crawl"] = Field(description="The tool to use: 'search' for Google, 'crawl' for visiting a specific URL")
@@ -23,18 +24,25 @@ class ResearcherState(TypedDict):
     revision_number: int
     max_revisions: int
     pending_actions: List[Dict]
+    illustration: Optional[Dict[str, Any]]
 
 class GapAnalysis(BaseModel):
     is_complete: bool = Field(description="Whether the section draft completely covers the topic and description")
     missing_info: str = Field(description="What specific information is missing, if any")
     actions: List[Action] = Field(description="List of actions (search or crawl) to find missing info")
 
+class IllustrationCheck(BaseModel):
+    needs_illustration: bool = Field(description="Whether the section needs a visual illustration")
+    reason: str = Field(description="Reason for the decision")
+
 class ResearcherAgent:
     def __init__(self, model: BaseChatModel, serper_api_key: str = None, event_callback=None):
         self.model = model
         self.serper_tool = SerperTool(api_key=serper_api_key)
         self.crawler_tool = CrawlerTool()
+        self.illustration_tool = IllustrationTool(model, self.serper_tool)
         self.gap_analyzer = model.with_structured_output(GapAnalysis)
+        self.illustration_checker = model.with_structured_output(IllustrationCheck)
         self.event_callback = event_callback
         self.graph = self._build_graph()
 
@@ -44,6 +52,7 @@ class ResearcherAgent:
         workflow.add_node("check_gaps", self.check_gaps)
         workflow.add_node("search_node", self.search_node)
         workflow.add_node("synthesize_node", self.synthesize_node)
+        workflow.add_node("illustrate_node", self.illustrate_node)
 
         workflow.set_entry_point("check_gaps")
 
@@ -52,12 +61,13 @@ class ResearcherAgent:
             self.should_continue,
             {
                 "continue": "search_node",
-                "end": END
+                "illustrate": "illustrate_node"
             }
         )
 
         workflow.add_edge("search_node", "synthesize_node")
         workflow.add_edge("synthesize_node", "check_gaps")
+        workflow.add_edge("illustrate_node", END)
 
         return workflow.compile()
 
@@ -106,7 +116,7 @@ class ResearcherAgent:
         actions = state.get("pending_actions", [])
         if actions:
             return "continue"
-        return "end"
+        return "illustrate"
 
     async def search_node(self, state: ResearcherState):
         actions = state.get("pending_actions", [])
@@ -164,6 +174,41 @@ class ResearcherAgent:
         
         return {"draft": response.content}
 
+    async def illustrate_node(self, state: ResearcherState):
+        topic = state["topic"]
+        description = state["description"]
+        draft = state.get("draft", "")
+        
+        # Check if illustration is needed
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a visual director. Analyze the draft and decide if a visual illustration (chart, diagram, image) is absolutely necessary to understand the content.
+            
+            CRITICAL INSTRUCTION:
+            The point of illustration is to provide visualization ONLY when text is not enough to understand something fully.
+            For example, it's easier to understand dynamic programming when you can see an animation of a decision tree running at every step instead of just text.
+            
+            If the text from the draft is sufficient to convey the concept clearly, then there is NO point generating an illustration.
+            The use of illustration must be FULLY JUSTIFIED by complexity or visual nature of the topic.
+            """),
+            ("user", "Topic: {topic}\nDescription: {description}\nDraft: {draft}\n\nDo we need an illustration?")
+        ])
+        
+        chain = prompt | self.illustration_checker
+        check = await chain.ainvoke({"topic": topic, "description": description, "draft": draft})
+        
+        if check.needs_illustration:
+            if self.event_callback:
+                self.event_callback("tool_start", {"tool": "illustration", "query": topic})
+                
+            result = await self.illustration_tool.illustrate(topic, description)
+            
+            if result and self.event_callback:
+                 self.event_callback("source_found", {"title": "Illustration generated", "url": "internal"})
+                 
+            return {"illustration": result}
+        
+        return {"illustration": None}
+
     async def run_research(self, topic: str, description: str) -> Dict[str, Any]:
         initial_state = {
             "topic": topic,
@@ -172,11 +217,13 @@ class ResearcherAgent:
             "search_results": [],
             "revision_number": 0,
             "max_revisions": 3,
-            "pending_actions": []
+            "pending_actions": [],
+            "illustration": None
         }
         
         final_state = await self.graph.ainvoke(initial_state)
         return {
             "content": final_state["draft"],
-            "sources": final_state.get("search_results", [])
+            "sources": final_state.get("search_results", []),
+            "illustration": final_state.get("illustration")
         }
