@@ -79,13 +79,22 @@ async def run_parallel_research(model, plan, user_id, request_id, publisher, api
         # Save intermediate draft
         try:
             loop = asyncio.get_running_loop()
-            # We save just the content string for now as the intermediate result, or we could save the full dict if API supports it
-            # Assuming API expects 'content' to be string based on previous usage
-            await loop.run_in_executor(None, api_client.save_research_result, request_id, {"title": section.title, "content": result["content"], "status": "draft"})
+            save_payload = {
+                "title": section.title, 
+                "content": result["content"], 
+                "status": "draft",
+                "illustration": result.get("illustration")
+            }
+            await loop.run_in_executor(None, api_client.save_research_result, request_id, save_payload)
         except Exception as e:
             print(f"Failed to save intermediate result: {e}")
 
-        return {"title": section.title, "content": result["content"], "sources": result["sources"]}
+        return {
+            "title": section.title, 
+            "content": result["content"], 
+            "sources": result["sources"],
+            "illustration": result.get("illustration")
+        }
 
     # Run all sections in parallel
     return await asyncio.gather(*[process_section(i, s) for i, s in enumerate(plan.sections)])

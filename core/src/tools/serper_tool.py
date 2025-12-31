@@ -60,3 +60,46 @@ class SerperTool:
         except Exception as e:
             print(f"Error searching Serper: {e}")
             return []
+
+    def search_images(self, query: str, k: int = 5) -> List[Dict[str, str]]:
+        """
+        Executes a Google Image Search using Serper API.
+        Returns a list of dictionaries with title, imageUrl, and sourceUrl.
+        """
+        if not self.api_key:
+             raise ValueError("SERPER_API_KEY is not set")
+
+        headers = {
+            "X-API-KEY": self.api_key,
+            "Content-Type": "application/json"
+        }
+        payload = json.dumps({
+            "q": query,
+            "num": k
+        })
+        
+        # Use images endpoint
+        url = "https://google.serper.dev/images"
+
+        try:
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status()
+            results = response.json()
+            
+            structured_results = []
+            
+            if "images" in results:
+                for result in results["images"]:
+                    structured_results.append({
+                        "title": result.get("title", ""),
+                        "url": result.get("imageUrl", ""),
+                        "source_url": result.get("link", ""),
+                        "width": result.get("width"),
+                        "height": result.get("height")
+                    })
+            
+            return structured_results
+
+        except Exception as e:
+            print(f"Error searching images on Serper: {e}")
+            return []

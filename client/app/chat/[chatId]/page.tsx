@@ -7,7 +7,7 @@ import { chatApi } from '@/lib/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, User as UserIcon, Bot } from 'lucide-react';
+import { Send, User as UserIcon, Bot, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
@@ -91,22 +91,20 @@ export default function ChatPage() {
   // Initialize WebSocket
   useSocket();
 
-  const { messages, setMessages, addMessage, activeResearch } = useChatStore();
+  const { messages, setMessages, addMessage, activeResearch, selectedModel, setSelectedModel } = useChatStore();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
 
-  useEffect(() => {
-    const savedModel = localStorage.getItem('selectedModel');
-    if (savedModel) {
-      setSelectedModel(savedModel);
-    }
-  }, []);
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+    shouldAutoScrollRef.current = isAtBottom;
+  };
 
   const handleModelChange = (value: string) => {
     setSelectedModel(value);
-    localStorage.setItem('selectedModel', value);
   };
 
   useEffect(() => {
@@ -119,7 +117,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     // Scroll to bottom when messages change
-    if (scrollRef.current) {
+    if (shouldAutoScrollRef.current && scrollRef.current) {
         scrollRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, activeResearch]);
@@ -133,6 +131,7 @@ export default function ChatPage() {
     setSending(true);
 
     try {
+        shouldAutoScrollRef.current = true;
         // Optimistically add user message
         const tempId = Date.now().toString();
         addMessage({
@@ -165,20 +164,25 @@ export default function ChatPage() {
       }
   }
 
+  const isStreaming = !!(activeResearch && activeResearch.isActive && activeResearch.status !== 'completed');
+
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex-1 overflow-hidden relative">
-        <ScrollArea className="h-full p-4">
+        <ScrollArea className="h-full p-4" onScroll={handleScroll}>
           <div className="max-w-3xl mx-auto space-y-6 pb-20">
             {messages.map((msg) => (
               <div
                 key={msg.id}
                 className={cn(
-                  "flex gap-4",
+                  "flex gap-2 md:gap-4",
                   msg.role === 'user' ? "flex-row-reverse" : "flex-row"
                 )}
               >
-                <Avatar className="h-8 w-8 shrink-0">
+                <Avatar className={cn(
+                  "h-8 w-8 shrink-0",
+                  msg.role === 'assistant' ? "hidden md:flex" : "flex"
+                )}>
                   {msg.role === 'assistant' && (
                     <AvatarImage src="/prism_ai_logo.jpeg" alt="Prism AI Logo" />
                   )}
@@ -187,7 +191,7 @@ export default function ChatPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className={cn(
-                    "flex flex-col gap-2 max-w-[80%]",
+                    "flex flex-col gap-2 max-w-[95%] md:max-w-[85%]",
                     msg.role === 'user' ? "items-end" : "items-start"
                 )}>
                     <div className={cn(
@@ -208,14 +212,14 @@ export default function ChatPage() {
 
             {/* Active Research Progress */}
             {activeResearch && activeResearch.isActive && activeResearch.status !== 'completed' && (
-                <div className="flex gap-4 flex-row animate-in fade-in slide-in-from-bottom-2">
-                    <Avatar className="h-8 w-8 shrink-0">
+                <div className="flex gap-2 md:gap-4 flex-row animate-in fade-in slide-in-from-bottom-2">
+                    <Avatar className="h-8 w-8 shrink-0 hidden md:flex">
                         <AvatarImage src="/prism_ai_logo.jpeg" alt="Prism AI Logo" />
                         <AvatarFallback className="bg-primary text-primary-foreground">
                             <Bot className="h-4 w-4" />
                         </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col gap-2 max-w-[85%] w-full">
+                    <div className="flex flex-col gap-2 max-w-[95%] md:max-w-[85%] w-full">
                         <div className="rounded-lg px-4 py-4 text-sm bg-muted/50 text-foreground w-full border border-border/50">
                             <StatusIndicator status={activeResearch.status} message={activeResearch.message} />
                             <SearchQueries queries={activeResearch.queries} />
@@ -238,44 +242,50 @@ export default function ChatPage() {
       </div>
 
       <div className="p-4 bg-background border-t">
-        <div className="max-w-3xl mx-auto relative">
-            <div className="mb-2 flex justify-start">
-                <Select value={selectedModel} onValueChange={handleModelChange}>
-                  <SelectTrigger className="w-[180px] bg-background border-border/50">
-                    <SelectValue placeholder="Select a model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_MODELS.map((group) => (
-                      <SelectGroup key={group.provider}>
-                        <SelectLabel>{group.provider}</SelectLabel>
-                        {group.models.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-            </div>
-            <form onSubmit={handleSubmit} className="relative">
+        <div className="max-w-3xl mx-auto">
+            <form onSubmit={handleSubmit} className="relative rounded-xl border bg-background focus-within:ring-1 focus-within:ring-ring p-3 shadow-sm transition-all duration-200">
                 <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask anything..."
-                    className="pr-12 resize-none py-3"
+                    className="min-h-[60px] w-full resize-none bg-transparent border-0 p-1 placeholder:text-muted-foreground focus-visible:ring-0 shadow-none text-base"
                     rows={1}
-                    style={{ minHeight: '50px' }}
                 />
-                <Button 
-                    type="submit" 
-                    size="icon" 
-                    disabled={!input.trim() || sending}
-                    className="absolute right-2 bottom-2 h-8 w-8"
-                >
-                    <Send className="h-4 w-4" />
-                </Button>
+                <div className="flex justify-between items-center mt-3 pt-2">
+                    <div className="flex items-center gap-2">
+                         <Select value={selectedModel} onValueChange={handleModelChange}>
+                            <SelectTrigger className="h-8 border-0 shadow-none focus:ring-0 w-auto gap-2 px-2 text-muted-foreground hover:text-foreground bg-transparent hover:bg-muted/50 rounded-md transition-colors">
+                                <SelectValue placeholder="Select a model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {AVAILABLE_MODELS.map((group) => (
+                                  <SelectGroup key={group.provider}>
+                                    <SelectLabel>{group.provider}</SelectLabel>
+                                    {group.models.map((model) => (
+                                      <SelectItem key={model.id} value={model.id}>
+                                        {model.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                ))}
+                            </SelectContent>
+                         </Select>
+                    </div>
+
+                    <Button 
+                        type="submit" 
+                        size="icon" 
+                        disabled={!input.trim() || sending || isStreaming}
+                        className="h-8 w-8 transition-all duration-200"
+                    >
+                        {sending || isStreaming ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
+                    </Button>
+                </div>
             </form>
         </div>
       </div>
