@@ -8,7 +8,7 @@ import { chatApi } from '@/lib/api';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Send, Bot } from 'lucide-react';
+import { Send, Bot, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
@@ -78,21 +78,12 @@ const getProviderForModel = (modelId: string) => {
 export default function NewChatPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { addChat, addMessage } = useChatStore();
+  const { addChat, addMessage, selectedModel, setSelectedModel } = useChatStore();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
-
-  useEffect(() => {
-    const savedModel = localStorage.getItem('selectedModel');
-    if (savedModel) {
-      setSelectedModel(savedModel);
-    }
-  }, []);
 
   const handleModelChange = (value: string) => {
     setSelectedModel(value);
-    localStorage.setItem('selectedModel', value);
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -171,45 +162,51 @@ export default function NewChatPage() {
       </div>
 
       <div className="p-4 bg-background">
-        <div className="max-w-3xl mx-auto relative">
-            <div className="mb-2 flex justify-center">
-                <Select value={selectedModel} onValueChange={handleModelChange}>
-                  <SelectTrigger className="w-[180px] bg-background border-border/50">
-                    <SelectValue placeholder="Select a model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AVAILABLE_MODELS.map((group) => (
-                      <SelectGroup key={group.provider}>
-                        <SelectLabel>{group.provider}</SelectLabel>
-                        {group.models.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
-            </div>
-            <form onSubmit={handleSubmit} className="relative">
+        <div className="max-w-3xl mx-auto">
+            <form onSubmit={handleSubmit} className="relative rounded-xl border bg-background focus-within:ring-1 focus-within:ring-ring p-3 shadow-sm transition-all duration-200">
                 <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ask anything..."
-                    className="pr-12 resize-none py-3 shadow-lg border-muted-foreground/20"
+                    className="min-h-[60px] w-full resize-none bg-transparent border-0 p-1 placeholder:text-muted-foreground focus-visible:ring-0 shadow-none text-base"
                     rows={1}
-                    style={{ minHeight: '50px' }}
                     autoFocus
                 />
-                <Button 
-                    type="submit" 
-                    size="icon" 
-                    disabled={!input.trim() || sending}
-                    className="absolute right-2 bottom-2 h-8 w-8"
-                >
-                    <Send className="h-4 w-4" />
-                </Button>
+                <div className="flex justify-between items-center mt-3 pt-2">
+                    <div className="flex items-center gap-2">
+                         <Select value={selectedModel} onValueChange={handleModelChange}>
+                            <SelectTrigger className="h-8 border-0 shadow-none focus:ring-0 w-auto gap-2 px-2 text-muted-foreground hover:text-foreground bg-transparent hover:bg-muted/50 rounded-md transition-colors">
+                                <SelectValue placeholder="Select a model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {AVAILABLE_MODELS.map((group) => (
+                                  <SelectGroup key={group.provider}>
+                                    <SelectLabel>{group.provider}</SelectLabel>
+                                    {group.models.map((model) => (
+                                      <SelectItem key={model.id} value={model.id}>
+                                        {model.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                ))}
+                            </SelectContent>
+                         </Select>
+                    </div>
+
+                    <Button 
+                        type="submit" 
+                        size="icon" 
+                        disabled={!input.trim() || sending}
+                        className="h-8 w-8 transition-all duration-200"
+                    >
+                        {sending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
+                    </Button>
+                </div>
             </form>
         </div>
       </div>

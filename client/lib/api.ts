@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Chat, Message } from '../types';
 import { useAuthStore } from '../store/useAuthStore';
+import { toast } from '../hooks/use-toast';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
@@ -20,6 +21,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    toast(error.message || "Request failed", "error");
     return Promise.reject(error);
   }
 );
@@ -97,6 +99,12 @@ api.interceptors.response.use(
       }
     }
 
+    // Don't show toast for 401s that are being retried or initial 401 before retry
+    if (error.response?.status !== 401) {
+        const message = error.response?.data?.message || error.message || "An unexpected error occurred";
+        toast(message, "error");
+    }
+    
     return Promise.reject(error);
   }
 );

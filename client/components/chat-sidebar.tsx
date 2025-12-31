@@ -16,6 +16,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 interface ChatSidebarProps {
@@ -32,6 +40,7 @@ export function ChatSidebar({ className, onSelect }: ChatSidebarProps) {
   const { chats, setChats, addChat, updateChat, removeChat } = useChatStore();
   const [loading, setLoading] = useState(false);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [deleteChatId, setDeleteChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
   useEffect(() => {
@@ -82,17 +91,23 @@ export function ChatSidebar({ className, onSelect }: ChatSidebarProps) {
     }
   };
 
-  const handleDelete = async (chatId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (chatId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this chat?")) return;
+    setDeleteChatId(chatId);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteChatId) return;
     try {
-      await chatApi.deleteChat(chatId);
-      removeChat(chatId);
-      if (activeChatId === chatId) {
+      await chatApi.deleteChat(deleteChatId);
+      removeChat(deleteChatId);
+      if (activeChatId === deleteChatId) {
         router.push('/');
       }
     } catch (err) {
       console.error("Failed to delete chat", err);
+    } finally {
+      setDeleteChatId(null);
     }
   };
 
@@ -159,8 +174,8 @@ export function ChatSidebar({ className, onSelect }: ChatSidebarProps) {
                       >
                         <MessageSquare className="h-4 w-4 flex-shrink-0" />
                         <span className="text-left flex-1 min-w-0">
-                          {(chat.title || "Untitled Chat").length > 20 
-                            ? (chat.title || "Untitled Chat").substring(0, 20) + "..." 
+                          {(chat.title || "Untitled Chat").length > 17 
+                            ? (chat.title || "Untitled Chat").substring(0, 17) + "..." 
                             : (chat.title || "Untitled Chat")}
                         </span>
                       </Button>
@@ -176,7 +191,7 @@ export function ChatSidebar({ className, onSelect }: ChatSidebarProps) {
                             Rename
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={(e) => handleDelete(chat.id, e)}
+                            onClick={(e) => handleDeleteClick(chat.id, e)}
                             className="text-red-600 focus:text-red-600"
                           >
                             <Trash className="mr-2 h-4 w-4" />
@@ -197,6 +212,21 @@ export function ChatSidebar({ className, onSelect }: ChatSidebarProps) {
           </ScrollArea>
         </div>
       </div>
+
+      <Dialog open={!!deleteChatId} onOpenChange={(open) => !open && setDeleteChatId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Chat</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this chat? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteChatId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

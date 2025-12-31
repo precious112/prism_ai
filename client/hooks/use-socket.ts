@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore } from '../store/useChatStore';
 import { chatApi } from '../lib/api';
 import { AgentUpdateMessage } from '../types';
+import { toast } from './use-toast';
 
 export const useSocket = () => {
   const { user } = useAuthStore();
@@ -32,7 +33,10 @@ export const useSocket = () => {
     reconnectInterval: 3000,
     onOpen: () => console.log('WebSocket Connected'),
     onClose: () => console.log('WebSocket Disconnected'),
-    onError: (e) => console.error('WebSocket Error', e),
+    onError: (e) => {
+      console.error('WebSocket Error', e);
+      toast('WebSocket connection error', 'error');
+    },
   });
 
   useEffect(() => {
@@ -89,7 +93,8 @@ export const useSocket = () => {
              updateResearchStatus(feStatus, message);
           }
         } else if (data.type === 'agent_error') {
-            updateResearchStatus('error', data.payload.message);
+            toast(data.payload.message, 'error');
+            updateResearchStatus('error', 'An error occurred. Check notifications.');
         }
       } catch (e) {
         console.error("Failed to parse websocket message", e);
