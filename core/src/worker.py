@@ -189,6 +189,7 @@ def main():
                 try:
                     planner = PlanningAgent(model)
                     history = payload.get("history", [])
+                    print(f"DEBUG: Loaded chat history from Redis payload: {len(history)} messages. First message: {history[0] if history else 'None'}")
                     plan = asyncio.run(planner.generate_plan(query, history))
                     
                     # Convert Pydantic model to dict

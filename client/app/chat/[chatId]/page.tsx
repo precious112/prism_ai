@@ -28,6 +28,7 @@ import { ProgressSteps } from '@/components/chat/progress-steps';
 import { SearchQueries } from '@/components/chat/search-queries';
 import { SourceCarousel } from '@/components/chat/source-carousel';
 import { ReportRenderer } from '@/components/chat/report-renderer';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
 const AVAILABLE_MODELS = [
   {
@@ -91,6 +92,7 @@ export default function ChatPage() {
   // Initialize WebSocket
   useSocket();
 
+  const { apiKeys } = useSettingsStore();
   const { messages, setMessages, addMessage, activeResearch, selectedModel, setSelectedModel, includeIllustrations, setIncludeIllustrations } = useChatStore();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -143,7 +145,8 @@ export default function ChatPage() {
         });
 
         const provider = getProviderForModel(selectedModel);
-        const response = await chatApi.sendMessage(chatId, content, selectedModel, provider, includeIllustrations);
+        const apiKey = apiKeys[provider.toLowerCase() as keyof typeof apiKeys];
+        const response = await chatApi.sendMessage(chatId, content, selectedModel, provider, includeIllustrations, apiKey);
         // The API returns the saved message.
         // In a real implementation with WebSocket, we might get two messages back: the user's saved message (with real ID) and then the AI response.
         // Since we are using REST for now to send, and we want to see the AI response, we rely on the backend to trigger AI and eventually we'll fetch it or get it via WS.
