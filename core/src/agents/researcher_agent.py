@@ -173,7 +173,11 @@ class ResearcherAgent:
             "context": context
         })
         
-        return {"draft": response.content}
+        content = response.content
+        if isinstance(content, list):
+            content = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in content])
+            
+        return {"draft": content}
 
     async def illustrate_node(self, state: ResearcherState):
         # Check user preference

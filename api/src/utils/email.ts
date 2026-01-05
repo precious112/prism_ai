@@ -6,7 +6,8 @@ dotenv.config();
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendPasswordResetEmail = async (email: string, token: string) => {
-  const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const resetLink = `${clientUrl}/reset-password?token=${token}`;
   const { data, error } = await resend.emails.send({
     from: "precious@trysixth.com",
     to: email,
@@ -22,7 +23,8 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
 };
 
 export const sendInvitationEmail = async (email: string, token: string, organizationName: string) => {
-  const invitationLink = `http://localhost:3000/invitations/accept?token=${token}`;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+  const invitationLink = `${clientUrl}/invitations/accept?token=${token}`;
   const { data, error } = await resend.emails.send({
     from: "precious@trysixth.com",
     to: email,

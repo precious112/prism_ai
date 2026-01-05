@@ -8,6 +8,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Prism AI",
   description: "AI-powered research assistant",
+  icons: {
+    icon: "/prism_ai_logo.jpeg",
+  },
 };
 
 export default function RootLayout({

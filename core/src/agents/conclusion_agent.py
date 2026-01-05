@@ -34,6 +34,8 @@ class ConclusionAgent:
         # We await the summary generation
         summary = await summary_chain.ainvoke({"query": query, "sections": ", ".join(section_titles)})
         summary_text = summary.content
+        if isinstance(summary_text, list):
+            summary_text = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in summary_text])
         report_context += f"Executive Summary:\n{summary_text}\n\n"
         
         yield f'<section title="Executive Summary">\n<text>\n{summary_text}\n</text>\n</section>\n'
@@ -103,8 +105,14 @@ An illustration is available for this section: {desc}
 DECISION REQUIRED:
 1. Decide if this illustration helps explain the text.
 2. If YES:
-   - Place the tag `<illustration_placeholder/>` in the text where the illustration should appear.
-   - You may explicitly reference it (e.g., "The following visualization shows...").
+   - Place the tag `<illustration_placeholder/>` as a SIBLING to the `<text>` tags.
+   - CRITICAL: Do NOT place `<illustration_placeholder/>` INSIDE `<text>...</text>`. It must be between text blocks.
+   - Example Correct:
+     <text>...content...</text>
+     <illustration_placeholder/>
+     <text>...more content...</text>
+   - Example Wrong:
+     <text>...content... <illustration_placeholder/> ...more content...</text>
 3. If NO:
    - Do not include the placeholder tag.
 """
@@ -132,6 +140,9 @@ DECISION REQUIRED:
                 "illustration_placeholder": illustration_placeholder_hint
             }):
                 content = chunk.content
+                if isinstance(content, list):
+                    content = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in content])
+                
                 if not content: continue
                 
                 if illustration:

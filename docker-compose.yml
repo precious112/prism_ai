@@ -79,6 +79,8 @@ services:
   client:
     build:
       context: ./client
+      args:
+        NEXT_PUBLIC_OFFLINE_MODE: ${NEXT_PUBLIC_OFFLINE_MODE}
     container_name: prism_client
     depends_on:
       api:

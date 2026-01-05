@@ -43,7 +43,22 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
              }
           }
         } catch (error) {
-          // If refresh fails, we are not logged in
+          // If refresh fails, check if we are in offline mode
+          if (process.env.NEXT_PUBLIC_OFFLINE_MODE === "true") {
+            try {
+              const offlineRes = await api.post("/auth/offline-login");
+              const { accessToken, user: offlineUser } = offlineRes.data.data;
+              if (accessToken && offlineUser) {
+                login(accessToken, offlineUser);
+                setCheckingAuth(false);
+                return;
+              }
+            } catch (offlineErr) {
+              console.error("Offline login failed", offlineErr);
+            }
+          }
+          
+          // If refresh fails (and offline login failed or disabled), we are not logged in
           logout();
         }
       }

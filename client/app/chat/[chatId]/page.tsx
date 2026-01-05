@@ -61,7 +61,7 @@ const AVAILABLE_MODELS = [
       { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" },
       { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" },
       { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash Lite" },
-      { id: "gemini-3-pro", name: "Gemini 3 Pro" },
+      { id: "gemini-3-pro-preview", name: "Gemini 3 Pro" },
       { id: "gemini-3-flash", name: "Gemini 3 Flash" },
     ],
   },
@@ -146,7 +146,8 @@ export default function ChatPage() {
 
         const provider = getProviderForModel(selectedModel);
         const apiKey = apiKeys[provider.toLowerCase() as keyof typeof apiKeys];
-        const response = await chatApi.sendMessage(chatId, content, selectedModel, provider, includeIllustrations, apiKey);
+        const serperApiKey = apiKeys.serper;
+        const response = await chatApi.sendMessage(chatId, content, selectedModel, provider, includeIllustrations, apiKey, serperApiKey);
         // The API returns the saved message.
         // In a real implementation with WebSocket, we might get two messages back: the user's saved message (with real ID) and then the AI response.
         // Since we are using REST for now to send, and we want to see the AI response, we rely on the backend to trigger AI and eventually we'll fetch it or get it via WS.

@@ -107,9 +107,10 @@ class IllustrationTool:
               - Include the Mermaid CDN script.
               - Initialize it with `mermaid.initialize({{ startOnLoad: true }});`.
               - Place the diagram code inside a `<div class="mermaid">` tag.
-              - **IMPORTANT RULES**: 
+                - **IMPORTANT RULES**: 
                 - Start STRICTLY with the diagram type (e.g., `graph TD`, `sequenceDiagram`, `classDiagram`).
                 - **ALWAYS wrap node labels in double quotes** (e.g., `id["Label Text"]`). This is critical to prevent syntax errors with special characters.
+                - **Avoid using any HTML tags within node text (like `<br/>` for line breaks).**
                 - Do NOT include version numbers, markdown fences, or text like "mermaid version".
                 - Example: `<div class="mermaid">\ngraph TD;\nA["Start"] --> B["End"];\n</div>`
             - **P5/Three**:
@@ -126,7 +127,11 @@ class IllustrationTool:
         response = await chain.ainvoke({"lib": decision.visualization_type, "prompt": decision.code_prompt})
         
         # Clean up markdown if present (LLMs love markdown fences)
-        content = response.content.strip()
+        content = response.content
+        if isinstance(content, list):
+            content = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in content])
+
+        content = content.strip()
         if content.startswith("```html"):
             content = content[7:]
         elif content.startswith("```"):
@@ -156,6 +161,7 @@ class IllustrationTool:
             5. **Mermaid Specifics**:
                - Ensure content inside `<div class="mermaid">` is VALID Mermaid syntax.
                - Check that ALL node labels are wrapped in **double quotes** (e.g., `id["Label"]`). Unquoted labels with spaces or symbols cause errors.
+               - Ensure NO HTML tags are present within node labels.
                - No version strings or markdown.
             
             INSTRUCTIONS:
@@ -175,7 +181,11 @@ class IllustrationTool:
             "code": code
         })
         
-        content = response.content.strip()
+        content = response.content
+        if isinstance(content, list):
+            content = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in content])
+
+        content = content.strip()
         # Clean up markdown
         if content.startswith("```html"):
             content = content[7:]

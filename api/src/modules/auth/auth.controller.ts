@@ -15,6 +15,36 @@ import {
 } from "./token.utils";
 import { catchAsync } from "../../utils/catchAsync";
 import AppError from "../../utils/AppError";
+import { prisma } from "../../utils/prisma";
+
+export const offlineLoginController = catchAsync(async (req: Request, res: Response) => {
+  if (process.env.OFFLINE_MODE !== "true") {
+    throw new AppError(403, "Offline mode is not enabled.");
+  }
+
+  const email = "offline@prism.ai";
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    throw new AppError(500, "Offline user not initialized.");
+  }
+
+  await deleteAllRefreshTokensForUser(user.id);
+
+  const accessToken = generateAccessToken(user.id);
+  const refreshToken = generateRefreshToken(user.id);
+
+  await addRefreshTokenToDb(user.id, refreshToken);
+
+  res.cookie("refresh_token", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/api/auth",
+  });
+
+  sendSuccess(res, { user, accessToken });
+});
 
 export const oauthCallback = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as any;

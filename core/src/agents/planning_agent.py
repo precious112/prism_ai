@@ -46,7 +46,10 @@ class PlanningAgent:
             prompt = f"Summarize the following interaction concisely, focusing on research progress and key findings:\n\n{text}"
             # Use base model for summarization (text output)
             response = await self.model.ainvoke(prompt)
-            return response.content
+            content = response.content
+            if isinstance(content, list):
+                content = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in content])
+            return content
             
         # Parallel summarization
         summaries = await asyncio.gather(*[summarize_chunk(chunk) for chunk in chunks])

@@ -104,7 +104,12 @@ function LoginContent() {
               />
             </div>
             <div className="grid gap-2">
-              <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Password</label>
+              <div className="flex items-center">
+                <label htmlFor="password" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Password</label>
+                <Link href="/forgot-password" className="ml-auto inline-block text-sm underline text-muted-foreground hover:text-primary">
+                  Forgot your password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"

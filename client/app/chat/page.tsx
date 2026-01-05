@@ -52,7 +52,7 @@ const AVAILABLE_MODELS = [
       { id: "gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite" },
       { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" },
       { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash Lite" },
-      { id: "gemini-3-pro", name: "Gemini 3 Pro" },
+      { id: "gemini-3-pro-preview", name: "Gemini 3 Pro" },
       { id: "gemini-3-flash", name: "Gemini 3 Flash" },
     ],
   },

@@ -205,7 +205,19 @@ function parseXML(xml: string): Section[] {
         let match;
         while ((match = tagRegex.exec(body)) !== null) {
             if (match[1] === 'text') {
-                contentParts.push({ type: 'text', content: match[2].trim() });
+                const textContent = match[2];
+                const parts = textContent.split(/(<code>[\s\S]*?<\/code>)/g);
+                
+                parts.forEach(part => {
+                    if (part.startsWith('<code>') && part.endsWith('</code>')) {
+                        const codeContent = part.substring(6, part.length - 7);
+                        if (codeContent.trim()) {
+                            contentParts.push({ type: 'code', content: codeContent.trim() });
+                        }
+                    } else if (part.trim()) {
+                        contentParts.push({ type: 'text', content: part.trim() });
+                    }
+                });
             } else if (match[1] === 'code') {
                 contentParts.push({ type: 'code', content: match[2].trim() });
             } else if (match[0].startsWith('<image')) {

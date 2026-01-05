@@ -52,8 +52,11 @@ api.interceptors.response.use(
       if (originalRequest.url?.includes('/auth/refresh')) {
         // If the refresh request itself failed, logout and show login modal
         // This means the session is truly dead
+        const currentUser = useAuthStore.getState().user;
         useAuthStore.getState().logout();
-        useAuthStore.getState().setAuthModalOpen(true);
+        if (currentUser) {
+          useAuthStore.getState().setAuthModalOpen(true);
+        }
         return Promise.reject(error);
       }
 
@@ -88,8 +91,11 @@ api.interceptors.response.use(
         }
       } catch (err) {
         processQueue(err, null);
+        const currentUser = useAuthStore.getState().user;
         useAuthStore.getState().logout();
-        useAuthStore.getState().setAuthModalOpen(true);
+        if (currentUser) {
+          useAuthStore.getState().setAuthModalOpen(true);
+        }
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
@@ -125,8 +131,8 @@ export const chatApi = {
     const response = await api.get<ApiResponse<{ messages: Message[] }>>(`/chats/${chatId}/messages`);
     return response.data.data.messages.reverse();
   },
-  sendMessage: async (chatId: string, content: string, model?: string, provider?: string, includeIllustrations: boolean = true, apiKey?: string) => {
-    const response = await api.post<ApiResponse<{ message: Message }>>(`/chats/${chatId}/messages`, { content, model, provider, includeIllustrations, apiKey });
+  sendMessage: async (chatId: string, content: string, model?: string, provider?: string, includeIllustrations: boolean = true, apiKey?: string, serperApiKey?: string) => {
+    const response = await api.post<ApiResponse<{ message: Message }>>(`/chats/${chatId}/messages`, { content, model, provider, includeIllustrations, apiKey, serperApiKey });
     return response.data.data.message;
   },
   updateChat: async (chatId: string, title: string) => {
