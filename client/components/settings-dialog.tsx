@@ -76,6 +76,19 @@ export function SettingsDialog() {
               className="col-span-3"
             />
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <label htmlFor="serper" className="text-right text-sm font-medium">
+              Serper
+            </label>
+            <Input
+              id="serper"
+              type="password"
+              placeholder="Enter Serper API Key"
+              value={apiKeys.serper || ""}
+              onChange={(e) => setApiKey("serper", e.target.value)}
+              className="col-span-3"
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

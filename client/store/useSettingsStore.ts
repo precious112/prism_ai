@@ -6,6 +6,7 @@ interface ApiKeys {
   anthropic?: string;
   google?: string;
   xai?: string;
+  serper?: string;
 }
 
 interface SettingsState {

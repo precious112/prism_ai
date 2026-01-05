@@ -21,30 +21,18 @@ Here's the structure of the `api/src` directory:
 api/
 └── src/
     ├── modules/
-    │   ├── auth/
-    │   │   ├── auth.controller.ts
-    │   │   ├── auth.service.ts
-    │   │   ├── auth.routes.ts
-    │   │   ├── auth.validation.ts
-    │   │   └── __tests__/
-    │   │       ├── auth.controller.test.ts
-    │   │       └── auth.service.test.ts
-    │   │
-    │   └── chat/
-    │       ├── chat.controller.ts
-    │       ├── chat.service.ts
-    │       ├── chat.routes.ts
-    │       ├── chat.validation.ts
-    │       └── __tests__/
-    │           ├── chat.controller.test.ts
-    │           └── chat.service.test.ts
+    │   ├── auth/           # Authentication (Login, Register, OAuth)
+    │   ├── chat/           # Chat history and message management
+    │   ├── research/       # Research task creation and status tracking
+    │   ├── users/          # User profile management
+    │   └── organizations/  # Team/Organization management
     │
     ├── middleware/
     │   ├── isAuthenticated.ts
     │   └── errorHandler.ts
     │
     ├── config/
-    │   └── index.ts
+    │   └── passport.ts
     │
     ├── utils/
     │   ├── logger.ts
@@ -56,7 +44,7 @@ api/
 
 ### `modules`
 
-This is the heart of the application. Each feature of the API (e.g., `auth`, `chat`) resides in its own "module" folder.
+This is the heart of the application. Each feature of the API resides in its own "module" folder.
 
 - **`*.routes.ts`**: Defines the API endpoints for the feature (e.g., `POST /auth/login`) and maps them to controller functions.
 - **`*.controller.ts`**: Handles the incoming HTTP request, validates the input (using the validation schemas), calls the appropriate service to perform the business logic, and sends the response.
@@ -70,7 +58,7 @@ This directory holds global Express middleware. For example, an `isAuthenticated
 
 ### `config`
 
-For application-wide configuration, primarily for managing environment variables.
+For application-wide configuration, primarily for managing environment variables and Passport strategies.
 
 ### `utils`
 

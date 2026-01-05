@@ -29,6 +29,7 @@ export const addMessageController = catchAsync(async (req: Request, res: Respons
       model: req.body.model,
       provider: req.body.provider,
       apiKey: req.body.apiKey,
+      serperApiKey: req.body.serperApiKey,
       includeIllustrations: req.body.includeIllustrations,
     }
   );

@@ -12,20 +12,38 @@ Prism AI is built on a microservices-oriented architecture. This design promotes
 
 The core of the architecture is a set of decoupled services that communicate asynchronously via a message broker.
 
-```
-+----------------+      +-------------------+      +---------------------+
-|                |      |                   |      |                     |
-| Next.js Client |----->|    API Backend    |----->|    Message Broker   |
-|                |<-----|  (Express.js)     |<-----|  (e.g., RabbitMQ)   |
-+----------------+      +-------------------+      +----------+----------+
-       ^                                                      |
-       | WebSocket                                            |
-       |                                                      v
-+----------------+      +-------------------+      +---------------------+
-|                |      |                   |      |                     |
-| WebSocket      |<-----|  AI Workers       |<-----|                     |
-| Server (Go)    |      |  (Python/Celery)  |      |                     |
-+----------------+      +-------------------+      +---------------------+
+```mermaid
+graph TD
+    User["User / Browser"]
+    
+    subgraph Client
+        NextJS["Next.js Client"]
+    end
+
+    subgraph Backend
+        API["API Server (Express)"]
+        WS["WebSocket Server (Go)"]
+        DB[("PostgreSQL")]
+        Redis[("Redis")]
+    end
+
+    subgraph Workers
+        AI["AI Worker (Python)"]
+    end
+
+    User -->|HTTPS| NextJS
+    NextJS -->|REST API| API
+    NextJS -->|WebSocket| WS
+    
+    API -->|Read/Write| DB
+    API -->|Publish Tasks| Redis
+    
+    AI -->|Subscribe Tasks| Redis
+    AI -->|Publish Updates| Redis
+    AI -->|Save Results| API
+    
+    WS -->|Subscribe Updates| Redis
+    WS -->|Push Updates| NextJS
 ```
 
 ## 3. Component Breakdown
@@ -44,26 +62,26 @@ The project is divided into four main services:
     *   Listen for tasks on the message broker.
     *   Execute complex, long-running research tasks.
     *   Publish progress updates and final results back to the message broker.
-    *   Will likely use a framework like Celery for task management.
+    *   Uses LangGraph to manage state and complex agent workflows.
 
 *   **`websocket/` (Go)**: A high-performance WebSocket server written in Go. Its sole purpose is to provide a real-time communication channel between the backend and the client. It listens for progress updates from the AI workers via the message broker and pushes them to the connected clients.
 
 ## 4. Technology Stack
 
-*   **Frontend**: Next.js, React, TypeScript
+*   **Frontend**: Next.js 14 (App Router), React, TypeScript, Tailwind CSS, Shadcn UI
 *   **API Backend**: Express.js, TypeScript, Node.js
-*   **AI Workers**: Python (potentially with Celery)
-*   **WebSocket Server**: Go
+*   **AI Workers**: Python 3.11+, LangChain, LangGraph
+*   **WebSocket Server**: Go, Gorilla WebSocket
 *   **Database**: PostgreSQL
 *   **ORM**: Prisma
-*   **Message Broker**: RabbitMQ or Redis (to be decided)
+*   **Message Broker**: Redis
 *   **Containerization**: Docker
 
 ## 5. Local/Offline Mode
 
-To facilitate ease of development and contribution, the project supports a local "offline" mode, managed via Docker Compose. This is controlled by an `APP_MODE` environment variable.
+To facilitate ease of development and contribution, the project supports a local "offline" mode, managed via Docker Compose. This is controlled by an `OFFLINE_MODE` environment variable.
 
-*   **`APP_MODE=online`**: The configuration for the live, deployed version. It includes features like user authentication.
-*   **`APP_MODE=offline`**: The configuration for local development. In this mode, authentication is disabled, and the entire application stack (including the database and message broker) can be run locally with a single `docker-compose up` command.
+*   **`OFFLINE_MODE=false`**: The configuration for the live, deployed version. It includes features like user authentication via email/password or OAuth.
+*   **`OFFLINE_MODE=true`**: The configuration for local development. In this mode, authentication is disabled or simplified, allowing developers to work on features without needing complex auth setup.
 
 This approach significantly lowers the barrier to entry for new developers and allows for easy testing and development.

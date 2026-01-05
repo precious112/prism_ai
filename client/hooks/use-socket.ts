@@ -43,9 +43,18 @@ export const useSocket = () => {
     if (lastMessage !== null) {
       try {
         const data = JSON.parse(lastMessage.data) as AgentUpdateMessage;
+        const payloadData = data.payload.data || {};
+        
+        // Filter events by active chat to prevent zombie tasks from hijacking the UI
+        const activeChatId = useChatStore.getState().activeChatId;
+        const eventChatId = payloadData.chatId;
+
+        if (eventChatId && activeChatId && eventChatId !== activeChatId) {
+            return;
+        }
         
         if (data.type === 'agent_update') {
-          const { status, message, data: payloadData } = data.payload;
+          const { status, message } = data.payload;
           const { event_type, requestId } = payloadData;
 
           // Get fresh state directly to avoid dependency loops in useEffect
@@ -93,8 +102,18 @@ export const useSocket = () => {
              updateResearchStatus(feStatus, message);
           }
         } else if (data.type === 'agent_error') {
-            toast(data.payload.message, 'error');
-            updateResearchStatus('error', 'An error occurred. Check notifications.');
+            const { message } = data.payload;
+            toast(message, 'error');
+            
+            const requestId = payloadData?.requestId;
+            if (requestId) {
+                 const activeResearch = useChatStore.getState().activeResearch;
+                 if (!activeResearch || activeResearch.requestId !== requestId) {
+                     startResearch(requestId);
+                 }
+            }
+            
+            updateResearchStatus('error', message || 'An error occurred.');
         }
       } catch (e) {
         console.error("Failed to parse websocket message", e);

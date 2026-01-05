@@ -2,6 +2,7 @@ import { Router } from "express";
 import passport from "passport";
 import {
   loginController,
+  offlineLoginController,
   oauthCallback,
   refreshTokenController,
   logoutController,
@@ -36,6 +37,7 @@ router.get(
 );
 
 router.post("/login", validate(loginSchema), loginController);
+router.post("/offline-login", offlineLoginController);
 router.post("/refresh", refreshTokenController);
 router.post("/logout", logoutController);
 router.post("/forgot-password", forgotPasswordController);
