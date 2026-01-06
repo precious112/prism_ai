@@ -24,15 +24,27 @@ spec:
             name: prism-config
         - secretRef:
             name: prism-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: api
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
-  - port: 3000
+  - port: 80
     targetPort: 3000
   selector:
     app: api
