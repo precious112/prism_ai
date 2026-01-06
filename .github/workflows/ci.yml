@@ -51,15 +51,15 @@ jobs:
         echo "DATABASE_URL=postgresql://prism:prism@localhost:5432/prism_ai_test?schema=public" > .env.test
         echo "TEST_DATABASE_URL=postgresql://prism:prism@localhost:5432/prism_ai_test?schema=public" >> .env.test
         echo "REDIS_URL=redis://localhost:6379" >> .env.test
-        echo "ACCESS_TOKEN_SECRET=test" >> .env.test
-        echo "REFRESH_TOKEN_SECRET=test" >> .env.test
-        echo "WORKER_SECRET=test" >> .env.test
-        echo "RESEND_API_KEY=re_123456789" >> .env.test
-        echo "GOOGLE_CLIENT_ID=test" >> .env.test
-        echo "GOOGLE_CLIENT_SECRET=test" >> .env.test
-        echo "GH_CLIENT_ID=test" >> .env.test
-        echo "GH_CLIENT_SECRET=test" >> .env.test
-        echo "CLIENT_URL=http://localhost:3000" >> .env.test
+        echo "ACCESS_TOKEN_SECRET=${{ secrets.ACCESS_TOKEN_SECRET }}" >> .env.test
+        echo "REFRESH_TOKEN_SECRET=${{ secrets.REFRESH_TOKEN_SECRET }}" >> .env.test
+        echo "WORKER_SECRET=${{ secrets.WORKER_SECRET }}" >> .env.test
+        echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> .env.test
+        echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env.test
+        echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env.test
+        echo "GITHUB_CLIENT_ID=${{ secrets.GH_CLIENT_ID }}" >> .env.test
+        echo "GITHUB_CLIENT_SECRET=${{ secrets.GH_CLIENT_SECRET }}" >> .env.test
+        echo "CLIENT_URL=${{ secrets.CLIENT_URL }}" >> .env.test
 
     - name: Run Tests
       working-directory: ./api
