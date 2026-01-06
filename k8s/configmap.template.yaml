@@ -9,3 +9,4 @@ data:
   MAX_CONCURRENT_TASKS: "50"
   OFFLINE_MODE: "false"
   CLIENT_URL: "${CLIENT_URL}"
+  API_URL: "http://api/api"

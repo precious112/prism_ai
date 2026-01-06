@@ -15,9 +15,6 @@ spec:
       containers:
       - name: worker
         image: "${GCR_HOSTNAME}/${GOOGLE_PROJECT_ID}/prism-worker:${GITHUB_SHA}"
-        env:
-        - name: API_URL
-          value: "http://api:3000/api"
         envFrom:
         - configMapRef:
             name: prism-config
