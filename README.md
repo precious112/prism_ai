@@ -13,7 +13,9 @@
 
 ## 🎥 Demo
 
-[![Demo Video](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+[▶ Watch Prism AI Demo](https://res.cloudinary.com/chopwell/video/upload/v1767778690/prism_ai_1_2_ukywot.mp4)
+
+
 
 *(Click the image to watch the demo)*
 
