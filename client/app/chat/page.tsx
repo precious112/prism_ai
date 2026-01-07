@@ -36,10 +36,8 @@ const AVAILABLE_MODELS = [
   {
     provider: "Anthropic",
     models: [
-      { id: "claude-opus-4-1", name: "Claude Opus 4.1" },
-      { id: "claude-opus-4", name: "Claude Opus 4" },
-      { id: "claude-sonnet-4", name: "Claude Sonnet 4" },
-      { id: "claude-3-7-sonnet-latest", name: "Claude 3.7 Sonnet" },
+      { id: "claude-opus-4-20250514", name: "Claude Opus 4" },
+      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
       { id: "claude-3-5-sonnet-latest", name: "Claude 3.5 Sonnet" },
       { id: "claude-3-5-haiku-latest", name: "Claude 3.5 Haiku" },
     ],
