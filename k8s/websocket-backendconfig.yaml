@@ -3,6 +3,7 @@ kind: BackendConfig
 metadata:
   name: websocket-backendconfig
 spec:
+  timeoutSec: 86400
   healthCheck:
     requestPath: /health
     port: 8080
