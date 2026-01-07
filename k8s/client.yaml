@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: client
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: client
@@ -17,6 +17,13 @@ spec:
         image: "${GCR_HOSTNAME}/${GOOGLE_PROJECT_ID}/prism-client:${GITHUB_SHA}"
         ports:
         - containerPort: 3000
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
         env:
         - name: HOSTNAME
           value: "0.0.0.0"
