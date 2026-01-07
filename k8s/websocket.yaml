@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: websocket
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: websocket
@@ -19,6 +19,13 @@ spec:
         - containerPort: 8080
         command: ["./server"]
         args: ["-redis", "$(REDIS_HOST):$(REDIS_PORT)"]
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 250m
+            memory: 512Mi
         envFrom:
         - configMapRef:
             name: prism-config

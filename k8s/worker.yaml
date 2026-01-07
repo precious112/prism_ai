@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: worker
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     matchLabels:
       app: worker
@@ -15,6 +15,13 @@ spec:
       containers:
       - name: worker
         image: "${GCR_HOSTNAME}/${GOOGLE_PROJECT_ID}/prism-worker:${GITHUB_SHA}"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 1000m
+            memory: 3Gi
         envFrom:
         - configMapRef:
             name: prism-config
