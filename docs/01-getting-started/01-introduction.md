@@ -1,28 +1,29 @@
-# Introduction
+# Core Concepts
 
-Welcome to Prism AI, an open-source AI research agent built for deep, automated web research.
+This section explains the fundamental concepts behind Prism AI's architecture.
 
-## What is Prism AI?
+## The Agentic Workflow
 
-Prism AI attempts to solve the problem of information overload. Instead of just giving you a list of links (like a traditional search engine) or a simple text summary (like a basic chatbot), Prism AI acts as a **Research Assistant**.
+Unlike traditional chatbots that generate text token-by-token from a single prompt, Prism AI operates as a **System of Agents**. Each agent has a specific role, a set of tools, and a "brain" (LLM) to make decisions.
 
-It plans a research strategy, executes multiple searches in parallel, reads the content of webpages, and synthesizes a comprehensive report.
+### 1. The Planner
+The Planner is the architect. It doesn't do the research itself; it defines the *strategy*. By separating planning from execution, we prevent the model from getting "distracted" by early search results.
 
-## Key Features
+### 2. The Researcher (State Machine)
+We model the researcher not as a linear chain, but as a **State Graph** (using LangGraph). This allows for cyclical behavior:
+- **Gap Analysis**: The agent reads its own draft and asks, "Is this missing anything?"
+- **Self-Correction**: If a search returns irrelevant results, the agent can refine its query and try again.
 
-*   **Deep Research**: Breaks down complex queries into a structured plan (Table of Contents) and researches each section individually.
-*   **Real-Time Updates**: You don't have to wait for the final answer. Watch the agent think, search, and write in real-time via WebSocket streaming.
-*   **Source Transparency**: Every claim in the final report is cited with a direct link to the source.
-*   **Local & Private**: Can be run entirely on your local machine using Docker.
+### 3. The Synthesizer
+The Synthesizer (Conclusion Agent) acts as the editor-in-chief. It takes the raw drafts from multiple researchers and weaves them into a single narrative. It uses **Context-Aware Refinement** to ensure that Section B flows naturally from Section A, avoiding repetition.
 
-## The Competitive Edge: Visual Explanations
+## Why "Deep Research"?
 
-What sets Prism AI apart from tools like Perplexity or Open Research is its ability to **visually explain concepts**.
+Standard LLMs have a limited context window and "reasoning horizon". If you ask them to "write a comprehensive report on the future of batteries," they will likely give you a generic 500-word summary based on their training data.
 
-While other tools rely solely on text, Prism AI's agents are equipped with a custom **Illustration Tool**. If the agent determines that a concept (like a sorting algorithm, a system architecture, or a data trend) is better explained visually, it will:
+Prism AI overcomes this by:
+1.  **Decomposition**: Breaking the problem into 5-10 smaller sub-problems.
+2.  **Parallelism**: Solving these sub-problems simultaneously.
+3.  **Tool Use**: Accessing real-time data via Google Search and direct URL crawling.
 
-1.  **Decide** the best visualization format (Mermaid diagram, D3 chart, P5 animation, etc.).
-2.  **Generate** the code to render that visualization.
-3.  **Embed** it directly into the report.
-
-This turns a static text report into an interactive, multimedia learning experience.
+This allows the system to generate reports that are 10x deeper and more factually accurate than a standard chat completion.
